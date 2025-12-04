@@ -1,0 +1,40 @@
+services:
+  # アプリケーションサービスを定義する。
+  #
+  # @buildは、ビルドするためのイメージを指定する。
+  # @portsは、ポートを指定する。
+  # @environmentは、環境変数を指定する。
+  # @depends_onは、依存するサービスを指定する。
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/postgres
+      - SPRING_DATASOURCE_USERNAME=myuser
+      - SPRING_DATASOURCE_PASSWORD=mypassword
+    depends_on:
+      - db
+
+  # データベースサービスを定義する。
+  #
+  # @imageは、イメージを指定する。
+  # @environmentは、環境変数を指定する。
+  # @volumesは、ボリュームを指定する。ボリュームとは、データベースのデータを保存するための領域である。
+  # @exposeは、ポートを指定する。ポートとは、サービスが外部に公開するためのポートである。
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=mypassword
+      - POSTGRES_DB=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+# ボリュームを定義する。ボリュームは永続的なデータを保存するための領域である。s
+volumes:
+  postgres_data:
+
+

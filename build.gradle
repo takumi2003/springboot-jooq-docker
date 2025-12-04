@@ -1,0 +1,96 @@
+buildscript {
+    dependencies {
+        // TODO: Flywayプラグインのタスク実行時にPostgreSQLサポートを使うためのclasspath
+        // TODO: バージョンは36行目のflyway-database-postgresqlと合わせる
+        classpath("org.flywaydb:flyway-database-postgresql:10.4.1")
+    }
+}
+
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.3.5' // 君の環境に合わせる
+    id 'io.spring.dependency-management' version '1.1.6'
+    // jOOQのコード生成タスクを追加するプラグイン
+    id 'nu.studer.jooq' version '9.0'
+    // Flywayプラグインを追加
+    id 'org.flywaydb.flyway' version '10.0.0'
+}
+
+group = 'com.example'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+configurations {
+    // Flywayプラグインのタスク実行時に使う依存関係の設定
+    flywayRuntime.extendsFrom(runtimeOnly)
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    
+    // jOOQ本体 (実行時に必要)
+    implementation 'org.springframework.boot:spring-boot-starter-jooq'
+    
+    // DB接続 & マイグレーション
+    implementation("org.flywaydb:flyway-database-postgresql:10.4.1")
+    implementation 'org.postgresql:postgresql'
+    
+    // Flywayプラグインのタスク実行時にPostgreSQLドライバーを使うため
+    flywayRuntime 'org.postgresql:postgresql'
+    
+    // コード生成ツールがDBに接続するためのドライバ (ビルド時のみ必要)
+    jooqGenerator 'org.postgresql:postgresql'
+        
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+}
+
+// --- jOOQ コード生成の設定 ---
+jooq {
+    version = '3.19.10' // Spring Boot 3.3.x が依存するバージョン
+    configurations {
+        main {
+            generationTool {
+                logging = org.jooq.meta.jaxb.Logging.WARN
+                jdbc {
+                    // Gradle(ホスト)からDocker(コンテナ)へ接続する設定
+                    driver = 'org.postgresql.Driver'
+                    url = 'jdbc:postgresql://db:5432/postgres'
+                    user = 'myuser'
+                    password = 'mypassword'
+                }
+                generator {
+                    name = 'org.jooq.codegen.DefaultGenerator'
+                    database {
+                        name = 'org.jooq.meta.postgres.PostgresDatabase'
+                        inputSchema = 'public'
+                        // Flywayの管理テーブルはJavaコードにしなくていいので除外
+                        excludes = 'flyway_schema_history'
+                    }
+                    target {
+                        // 生成されたコードの置き場所
+                        packageName = 'com.example.demo.jooq'
+                        directory = 'build/generated-src/jooq/main'
+                    }
+                }
+            }
+        }
+    }
+}
+
+// Flywayの設定を追加
+flyway {
+    url = 'jdbc:postgresql://localhost:5432/postgres'
+    user = 'myuser'
+    password = 'mypassword'
+    locations = ['filesystem:src/main/resources/db/migration']
+    driver = 'org.postgresql.Driver'  // これを追加
+}
