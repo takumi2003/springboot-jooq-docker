@@ -18,7 +18,8 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
-    permissions:
+    permissions: 
+      contents: read
   
   # TODO: PostgreSQLサービスを追加
     services:
